@@ -13,7 +13,11 @@ class SubTask:
 
         self.type = random.randint(0, 2)
 
+        self.layers = 0
+
     def show(self):
-        print('task info:\nid:%d\ntype:%d\nnamespace:%s\nname:%s\nversion:%s\nruntime:%s\ninput:%s\noutput:%s' % (
-            self.id, self.type, self.namespace, self.name, self.version, self.runtime, self.input, self.output))
+        print(
+            'task info:\nid:%d\ntype:%d\nnamespace:%s\nname:%s\nversion:%s\nruntime:%s\ninput:%s\noutput:%s\nlayer:%d' % (
+                self.id, self.type, self.namespace, self.name, self.version, self.runtime, self.input, self.output,
+                self.layers))
         print('----------')

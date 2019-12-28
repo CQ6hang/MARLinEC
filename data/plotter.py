@@ -4,11 +4,11 @@ import numpy as np
 
 from data.csv_processor import CSVProcessor
 
-bs_path = './heqiang-dataset/edge-servers/site-optus-melbCBD.csv'
-user_path = './heqiang-dataset/users/users-melbcbd-generated.csv'
-amazon_path = './server-performance-dataset/AMAZON/amazon.csv'
-huawei_path = './server-performance-dataset/HUAWEI/huawei.csv'
-tencent_path = './server-performance-dataset/TENCENT/tencent.csv'
+bs_path = '../data/heqiang-dataset/edge-servers/site-optus-melbCBD.csv'
+user_path = '../data/heqiang-dataset/users/users-melbcbd-generated.csv'
+amazon_path = '../data/server-performance-dataset/AMAZON/amazon.csv'
+huawei_path = '../data/server-performance-dataset/HUAWEI/huawei.csv'
+tencent_path = '../data/server-performance-dataset/TENCENT/tencent.csv'
 
 # measured from google map,unit(m)
 horizontal_axis = 1860
@@ -147,4 +147,4 @@ def draw_performance():
 
 # draw_loc()
 
-draw_performance()
+# draw_performance()
