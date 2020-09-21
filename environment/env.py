@@ -45,15 +45,16 @@ class Env:
 
         # generate user entities
         user_processor = CSVProcessor(user_path, 1)
-        self.users = user_processor.form_entity()
+        self.users = user_processor.form_entity()[:5]
         self.n_user = len(self.users)
 
         # generate request
         self.request = [UserRequest(self.users[i].user_id) for i in range(self.n_user)]
 
         self.action_space = [self.cnt_bs(i) for i in range(self.n_user)]
+        self.obs_space = [[0 for _ in range(self.request[i].task_num)] for i in range(self.n_user)]
 
-        self.global_constraint = [0 for _ in range(self.n_user)]
+        self.global_constraint = [200 for _ in range(self.n_user)]
 
     def reset(self):
         self.idle_pool = [self.request[i].precursor for i in range(self.n_user)]
@@ -82,11 +83,11 @@ class Env:
                         if self.request[i].structure[k][j] == 1 and k not in self.released[i]:
                             break
                         elif k == self.request[i].task_num - 1:
-                            self.idle_pool.append(j)
-
-                self.curr_task[i] = self.idle_pool[i][self.curr_index[i] + 1]
-                # self.idle_pool[i] = self.idle_pool[i][1:]
-                self.curr_index[i] += 1
+                            self.idle_pool[i].append(j)
+                if self.curr_index[i] + 1 < len(self.idle_pool[i]):
+                    self.curr_task[i] = self.idle_pool[i][self.curr_index[i] + 1]
+                    # self.idle_pool[i] = self.idle_pool[i][1:]
+                    self.curr_index[i] += 1
 
     def observation(self):
         return self.obs_space
@@ -94,9 +95,9 @@ class Env:
     def rewards(self, action):
         rwd = []
         for i in range(self.n_user):
-            task_type = self.request[i].subtask[self.idle_pool[i][self.curr_index[i] - 1]].type
-            server_type = self.bss[i][self.action_space[i][action[i]]].type
-            layer = self.request[i].subtask[self.idle_pool[i][self.curr_index[i] - 1]].layers
+            task_type = self.request[i].subTask[self.idle_pool[i][self.curr_index[i] - 1]].type
+            server_type = self.bss[self.action_space[i][action[i]]].type
+            layer = self.request[i].subTask[self.idle_pool[i][self.curr_index[i] - 1]].layers
             # performance_data = []
             # if server_type == 0:
             #     performance_data = self.amz_data
@@ -107,15 +108,15 @@ class Env:
             # performance_data = generate_data(performance_data)
             # performance_data = performance_data[:, task_type]
             local_constraint = self.compute_local_constraint(i, self.global_constraint[i], layer)
-            cum_prob = self.generate_pmf(local_constraint, server_type, task_type)
+            cum_prob = self.compute_prob(local_constraint, server_type, task_type)
 
             rwd.append(cum_prob)
         return rwd
 
     def is_done(self):
-        for i in self.n_user:
-            if all(self.obs_space[i]):
-                self.done[i] = True
+        for i in range(self.n_user):
+            # print(self.obs_space[i])
+            self.done[i] = all(self.obs_space[i])
         return self.done
 
     def step(self, action):
@@ -172,18 +173,18 @@ class Env:
         if x in arg:
             return prob[arg.index(x)]
         else:
-            return prob, arg[0]
+            return prob, arg[0], arg[-1]
 
     def compute_local_constraint(self, user, global_c, layer):
         request = self.request[user]
         qos = []
         for i in range(1, request.max_layer + 1):
             record = []
-            for j in request.task_num:
+            for j in request.subTask:
                 if j.layers == i:
                     record.append(self.average_qos(user, j.type))
-                qos.append(max(record))
-            return qos[layer] / sum(qos) * global_c
+            qos.append(max(record))
+        return qos[layer - 1] / sum(qos) * global_c
 
     def average_qos(self, user, task_type):
         qos = []
@@ -197,7 +198,7 @@ class Env:
         return sum(qos) / len(qos)
 
     def mean_qos_pmf(self, server_type, task_type):
-        prob, floor = self.generate_pmf(-100, server_type, task_type)
+        prob, floor, end = self.generate_pmf(-100, server_type, task_type)
         # print(sum(prob), prob, floor)
         cum = 0
         ceiling = 0
@@ -211,6 +212,21 @@ class Env:
         floor -= 0.1
         qos = 0.1 * (0.5 - cum) / ceiling + floor
         return qos
+
+    def compute_prob(self, local_constraint, server_type, task_type):
+        prob, start, end = self.generate_pmf(-100, server_type, task_type)
+        floor = round(local_constraint, 1)
+        ceiling = floor + 0.1
+        if floor < start:
+            return 0
+        elif floor >= end:
+            return 1
+        else:
+            cum = 0
+            cum += sum(prob[:int((floor - start) / 0.1 + 1)])
+            print(prob,ceiling,start)
+            cum += prob[int((ceiling - start) / 0.1)] * (local_constraint - floor) / 0.1
+            return cum
 
 
 if __name__ == '__main__':

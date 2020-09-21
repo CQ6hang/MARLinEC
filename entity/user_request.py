@@ -56,4 +56,4 @@ class UserRequest:
 
 if __name__ == '__main__':
     request = UserRequest(0)
-    request.show()
+    print(request.precursor)

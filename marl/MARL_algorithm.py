@@ -18,7 +18,7 @@ class DeepQNetwork:
             e_greedy_min=0.01,
             replace_target_iter=500,
             memory_size=10000,
-            e_greedy_increment=1e-5,
+            e_greedy_decrement=1e-5,
             output_graph=False
     ):
         self.n_actions = n_actions
@@ -30,7 +30,7 @@ class DeepQNetwork:
         self.epsilon_min = e_greedy_min
         self.replace_target_iter = replace_target_iter
         self.memory_size = memory_size
-        self.epsilon_increment = e_greedy_increment
+        self.epsilon_decrement = e_greedy_decrement
 
         # total learning step
         self.learn_step_counter = 0
@@ -100,6 +100,7 @@ class DeepQNetwork:
 
     def choose_action(self, observation):
         # to have batch dimension when feed into tf placeholder
+        observation = np.array(observation)
         observation = observation[np.newaxis, :]
 
         # forward feed the observation and get q value for every actions
@@ -107,7 +108,7 @@ class DeepQNetwork:
         # action = np.argmax(actions_value)
         # print(actions_value,np.argmax(actions_value))
 
-        return actions_value[0]
+        return np.argmax(actions_value[0])
 
     def learn(self, states, actions, rewards, states_next, done):
         # check to replace target parameters
@@ -127,12 +128,12 @@ class DeepQNetwork:
         self.cost_his.append(cost)
 
         # increasing epsilon
-        self.epsilon = self.epsilon - self.epsilon_increment if self.epsilon > self.epsilon_min else self.epsilon_min
+        self.epsilon = self.epsilon - self.epsilon_decrement if self.epsilon > self.epsilon_min else self.epsilon_min
         self.learn_step_counter += 1
 
     def plot_cost(self):
         import matplotlib.pyplot as plt
         plt.plot(np.arange(len(self.cost_his)), self.cost_his)
-        plt.ylabel('Cost')
+        plt.ylabel('loss')
         plt.xlabel('training steps')
         plt.show()
